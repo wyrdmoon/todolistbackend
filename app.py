@@ -9,7 +9,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/api/mvptodolist', methods=['GET', 'POST', 'PATCH', 'DELETE'])
+@app.route('/api/mvptodolist', methods=['GET', 'POST', 'DELETE'])
 def Tasks_endpoint():
     if request.method == 'GET':
         conn = None
@@ -97,16 +97,17 @@ def user_session_endpoint():
         cursor = None
         email = request.json.get("email")
         password = request.json.get("password")
+ 
         rows = None
         try:
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
             cursor.execute ("SELECT * FROM user WHERE email = ? AND password = ? ", [email, password])
             user = cursor.fetchall()
-            loginToken=secrets.token_urlsafe(20)
+            loginToken = secrets.token_urlsafe(20)
             print(user)
             if len (user) == 1:
-                cursor.execute ("INSERT INTO user_session (id, login_token) VALUES (?,?)", [user[0][0], loginToken]) 
+                cursor.execute ("INSERT INTO user_session (user_id, loginToken) VALUES (?,?)", [user[0][0], loginToken]) 
                 conn.commit()
                 rows = cursor.rowcount
         except Exception as error:
@@ -122,15 +123,41 @@ def user_session_endpoint():
                 user={
                     "id": user[0][0],
                     "email": email,
-                    "username": user[0][1],
-                    "bio": user[0][3],
-                    "birthdate": user[0][4],
+                    "username": user[0][2],
                     "loginToken": loginToken
                 }
            
                 return Response(json.dumps(user,default=str), mimetype="application/json", status=201)
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
+            
+    
+    elif request.method == 'DELETE':
+        conn = None
+        cursor = None
+        loginToken = request.json.get("loginToken")
+        rows = None
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_session WHERE loginToken = ?", [loginToken])
+            conn.commit() 
+            rows = cursor.rowcount    
+        except Exception as error:
+            print("Something went wrong (This is LAZY)")  
+            print(error)  
+        finally: 
+            if cursor != None:
+                cursor.close() 
+            if conn != None:
+                conn.rollback()
+                conn.close()
+            if (rows == 1):
+                return Response("Logout Success", mimetype="text/html", status=204)
+            else:
+                return Response("Logout Failed", mimetype="text/html", status=500)
+            
+            
           
     
                     
