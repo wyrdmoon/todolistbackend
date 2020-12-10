@@ -2,6 +2,8 @@ import mariadb
 from flask import Flask, request, Response
 import json
 import dbcreds
+import hashlib
+import secrets
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -84,8 +86,51 @@ def Tasks_endpoint():
             if (rows == 1):
                 return Response("Delete Success", mimetype="text/html", status=204)
             else:
-                return Response("Delete Failed", mimetype="text/html", status=500)     
-            
+                return Response("Delete Failed", mimetype="text/html", status=500)   
+
+##############################################user login###########################################  
+@app.route('/api/login', methods=['POST', 'DELETE'])
+def user_session_endpoint():
+    
+    if request.method == 'POST':
+        conn = None
+        cursor = None
+        email = request.json.get("email")
+        password = request.json.get("password")
+        rows = None
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute ("SELECT * FROM user WHERE email = ? AND password = ? ", [email, password])
+            user = cursor.fetchall()
+            loginToken=secrets.token_urlsafe(20)
+            print(user)
+            if len (user) == 1:
+                cursor.execute ("INSERT INTO user_session (id, login_token) VALUES (?,?)", [user[0][0], loginToken]) 
+                conn.commit()
+                rows = cursor.rowcount
+        except Exception as error:
+            print("Something went wrong (THIS IS LAZY): ")
+            print(error)
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                user={
+                    "id": user[0][0],
+                    "email": email,
+                    "username": user[0][1],
+                    "bio": user[0][3],
+                    "birthdate": user[0][4],
+                    "loginToken": loginToken
+                }
+           
+                return Response(json.dumps(user,default=str), mimetype="application/json", status=201)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
           
     
                     
