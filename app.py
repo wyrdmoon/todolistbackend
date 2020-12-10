@@ -60,21 +60,16 @@ def Tasks_endpoint():
             else:
                 return Response("Something went wrong", mimetype="text/html", status=500)
     
-    elif request.method == "PATCH":
+    
+    elif request.method == "DELETE":
         conn = None
         cursor = None 
-        username = request.json.get("username") 
-        task = request.json.get("task")
-        task_id = request.json.get("id")
+        task_id =request.json.get("id")
         rows = None
         try:
-            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port,              database=dbcreds.database)
             cursor = conn.cursor()
-            if task != "" and username != None:
-                cursor.execute("UPDATE task_table SET task=? WHERE username=?", [task, username])
-            if task != "" and task_id != None:
-                cursor.execute("UPDATE task_table SET task=? WHERE id=?", [task, task_id])
-            
+            cursor.execute("DELETE FROM task_table WHERE id=?", [task_id])
             conn.commit() 
             rows = cursor.rowcount    
         except Exception as error:
@@ -87,9 +82,9 @@ def Tasks_endpoint():
                 conn.rollback()
                 conn.close()
             if (rows == 1):
-                return Response("Updated Success", mimetype="text/html", status=204)
+                return Response("Delete Success", mimetype="text/html", status=204)
             else:
-                return Response("Update Failed", mimetype="text/html", status=500)
+                return Response("Delete Failed", mimetype="text/html", status=500)     
             
           
     
