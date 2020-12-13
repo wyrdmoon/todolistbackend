@@ -102,7 +102,7 @@ def user_session_endpoint():
         try:
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute ("SELECT * FROM user WHERE email = ? AND password = ? ", [email, password])
+            cursor.execute ("SELECT * FROM user_table WHERE email = ? AND password = ? ", [email, password])
             user = cursor.fetchall()
             loginToken = secrets.token_urlsafe(20)
             print(user)
@@ -157,6 +157,46 @@ def user_session_endpoint():
             else:
                 return Response("Logout Failed", mimetype="text/html", status=500)
             
+##############################################signup#########################################################
+@app.route('/api/signup', methods=['POST'])
+def user_signup_endpoint():
+    
+    if request.method == 'POST':
+        conn = None
+        cursor = None
+        email = request.json.get("email")
+        password = request.json.get("password")
+        username = request.json.get("username")
+        rows = None
+        
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO user_table (email, password, username) VALUES (?,?,?)", [ email, password, username])
+            conn.commit()
+            rows = cursor.rowcount
+        except Exception as error:
+            print("Something went wrong (THIS IS LAZY): ")
+            print(error)
+            
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                user={
+               
+                    "email": email,
+                  
+                    "username": username,
+                  
+                }
+                return Response(json.dumps(user,default=str), mimetype="application/json", status=201)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+                                               
             
           
     
