@@ -38,16 +38,21 @@ def Tasks_endpoint():
     elif request.method =='POST':
         conn = None
         cursor = None
-        createdAt = request.json.get("createdAt")
+        
         task = request.json.get("task")
-        username = request.json.get("username")
+        loginToken = request.json.get("loginToken")
         rows = None
         try:
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO task_table(createdAt, task, username) VALUES(?, ?, ?)", [createdAt, task, username])
-            conn.commit()
-            rows = cursor.rowcount
+            cursor.execute("SELECT * FROM user_session INNER JOIN user_table ON user_table.id = user_session.user_id WHERE loginToken =?", [loginToken])
+            user = cursor.fetchall()
+            loginToken=secrets.token_urlsafe(20)
+            print(user)
+            if len (user) == 1:
+                cursor.execute("INSERT INTO task_table (user_id, username, task) VALUES (?,?,?)", [user[0][2], user[0][4], task])
+                conn.commit()
+                rows = cursor.rowcount
         except Exception as error:
             print("Error: ")
             print(error)
@@ -97,7 +102,7 @@ def user_session_endpoint():
         cursor = None
         email = request.json.get("email")
         password = request.json.get("password")
- 
+        
         rows = None
         try:
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
