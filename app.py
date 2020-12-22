@@ -18,7 +18,7 @@ def Tasks_endpoint():
         try:
            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
            cursor = conn.cursor()
-           cursor.execute("SELECT * FROM task_table")
+           cursor.execute("SELECT * FROM task_table ORDER BY createdAt DESC LIMIT 3")
            Tasks = cursor.fetchall()
            
         except Exception as error:
@@ -179,6 +179,7 @@ def user_signup_endpoint():
             cursor = conn.cursor()
             cursor.execute("INSERT INTO user_table (email, password, username) VALUES (?,?,?)", [ email, password, username])
             conn.commit()
+           
             rows = cursor.rowcount
         except Exception as error:
             print("Something went wrong (THIS IS LAZY): ")
